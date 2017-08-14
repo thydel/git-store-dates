@@ -29,7 +29,7 @@ $(saved): $(found); @cp -p $< $@; git add $@; echo $(self): dates upgraded
 show: $(saved); @< $< xargs -0i echo {}
 
 restore: awk := { print "touch -d @" $$1 sprintf("", sub($$1 FS, "")) FS q $$0 q }
-restore: $(saved); @< $< awk $(vars) '$(awk)' | dash
+restore:; @test -f $(saved) && awk $(vars) '$(awk)' $(saved) | dash
 
 .PHONY: find save show restore install
 
