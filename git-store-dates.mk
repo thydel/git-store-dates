@@ -31,7 +31,16 @@ show: $(saved); @< $< xargs -0i echo {}
 restore: awk := { print "touch -d @" $$1 sprintf("", sub($$1 FS, "")) FS q $$0 q }
 restore:; @test -f $(saved) && awk $(vars) '$(awk)' $(saved) | dash
 
-.PHONY: find save show restore install
+hooks: list       := pre-commit post-merge
+hooks: pre-commit := \#!/bin/sh\n\ngit-store-dates
+hooks: post-merge := $(pre-commit) restore
+hooks: pattern    := $(toplevel)/.git/hooks/%.store-dates
+hooks: .          := $(eval hooks         := $(list:%=$(pattern)))
+hooks: .          := $(eval hooks_pattern := $(pattern))
+hooks: $(hooks); @echo "link .git/hooks/*.store-dates to activate them"
+$(hooks): $(hooks_pattern) :; echo -e '$($*)' > $@; chmod +x $@
+
+.PHONY: find save show restore install hooks
 
 self    := $(lastword $(MAKEFILE_LIST))
 $(self) := $(basename $(self))
