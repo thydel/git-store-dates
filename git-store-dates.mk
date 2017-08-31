@@ -34,11 +34,20 @@ restore:; @test -f $(saved) && awk $(vars) '$(awk)' $(saved) | dash
 hooks: list       := pre-commit post-merge
 hooks: pre-commit := \#!/bin/sh\n\ngit-store-dates
 hooks: post-merge := $(pre-commit) restore
-hooks: pattern    := $(toplevel)/.git/hooks/%.store-dates
-hooks: .          := $(eval hooks         := $(list:%=$(pattern)))
-hooks: .          := $(eval hooks_pattern := $(pattern))
-hooks: $(hooks); @echo "link .git/hooks/*.store-dates to activate them"
-$(hooks): $(hooks_pattern) :; echo -e '$($*)' > $@; chmod +x $@
+hooks: links      := $(toplevel)/.git/hooks/%
+hooks: files      := $(links).store-dates
+hooks: tests      := $(links).tests
+hooks: .          := $(eval hooks_files   := $(list:%=$(files)))
+hooks: .          := $(eval hooks_links   := $(list:%=$(links)))
+hooks: .          := $(eval hooks_tests   := $(list:%=$(tests)))
+hooks: .          := $(eval hooks_files_p := $(files))
+hooks: .          := $(eval hooks_links_p := $(links))
+$(hooks_files): $(hooks_files_p) :; echo -e '$($*)' > $@; chmod +x $@
+$(hooks_links_p): $(hooks_files_p); (cd $(@D); ln -s $(<F) $(@F))
+$(hooks_tests):
+ @test -h $(basename $@) || (test -f $(basename $@) \
+ && (echo -e "\n\t*** hook $(basename $(@F)) already exists\n"; exit 1))
+hooks: $(hooks_files) $(hooks_links) $(hooks_tests);
 
 .PHONY: find save show restore install hooks
 
