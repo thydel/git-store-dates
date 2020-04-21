@@ -26,6 +26,17 @@ top: phony; @date
 
 ################
 
+dry   := .SHELLFLAGS += -nv
+verb  := .SHELLFLAGS += -v
+trace := .SHELLFLAGS += -x
+
+vartar := dry verb trace
+
+# Add "$(eval $(vartar2e))" As last line
+vartar2e = $$(vartar):; @: $$(eval $$($$@))
+
+################
+
 git.version.min := 2.23.0
 git.version.use := $(word 3, $(shell git version))
 git.version.seq := <(echo $(git.version.min) $(git.version.use) | xargs -n1)
@@ -44,23 +55,33 @@ save: phony find $(saved)
 main: phony save
 
 find restore: vars := -v RS='\0' -v q='"'
+find save: ifzero = $(found)$(if $(ZERO),,-nozero)
+
+ZERO :=
+zero := ZERO := 42
+vartar += zero
 
 find: find := git ls-files -sz | grep -zve $(notdir $(saved)) | cut -zf2
 find: stat := xargs -0 stat -c '%Y %n' | tr '\n' '\0' | sort -zrn
 find: awk  := FNR == 1 { print "touch -d @" $$1 FS q "$(found)" q }
-find: phony
- @$(find) | $(stat) > $(found)
+find: phony; @:
+ $(find) | $(stat) > $(found)
  awk $(vars) '$(awk)' $(found) | dash
- tr '\0' '\n' < $(found) > $(found)-nozero
- cmp -s $(found) $(saved) || rm -f $(saved)
+ < $(found) tr -cd '\n' | ifne /bin/false  # don't accept '\n' in filename
+ cmp -s $(ifzero) $(saved) || rm -f $(saved)
 
 $(found):;
-$(saved): $(found); @cp -p $< $@; git add $@; echo $(self): dates upgraded
+$(found)-nozero: $(found); @< $< tr '\0' '\n'n > $@; touch -r $< $@
 
-show: $(saved) phony; @< $< xargs -0i echo {}
+$(saved): $(found)-nozero; @cp -p $(ifzero) $@; git add $@; echo $(self): dates upgraded
+
+show: $(saved) phony; @< $< tr '\0' '\n'
 
 restore: awk := { print "touch -d @" $$1 sprintf("", sub($$1 FS, "")) FS q $$0 q }
-restore: phony; @test -f $(saved) && awk $(vars) '$(awk)' $(saved) | dash
+restore: phony; @:
+ test -f $(saved) || exit 0
+ < $(saved) tr -cd '\0' | ifne awk $(vars) '$(awk)' $(saved) | ifne dash && exit 0 # zero fmt
+ < $(saved) tr '\n' '\0' | awk $(vars) '$(awk)' | dash # no-zero fmt
 
 hooks: list       := pre-commit post-merge
 hooks: pre-commit := \#!/bin/sh\n\ngit-store-dates
@@ -99,3 +120,7 @@ install: phony; @echo "can't install from installed"
 endif
 
 endif
+
+################
+
+$(eval $(vartar2e))
