@@ -122,6 +122,12 @@ endif
 
 endif
 
+define help
+$($(self)) save restore hooks
+endef
+
+help:; @echo $($@)
+
 ################
 
 $(eval $(vartar2e))
