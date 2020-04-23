@@ -81,8 +81,10 @@ show: $(saved) phony; @< $< tr '\0' '\n'
 restore: awk := { print "touch -d @" $$1 sprintf("", sub($$1 FS, "")) FS q $$0 q }
 restore: phony; @:
  test -f $(saved) || exit 0
- < $(saved) tr -cd '\0' | ifne awk $(vars) '$(awk)' $(saved) | ifne dash && exit 0 # zero fmt
- < $(saved) tr '\n' '\0' | awk $(vars) '$(awk)' | dash # no-zero fmt
+ # zero fmt
+ if < $(saved) tr -cd '\0' | ifne -n /bin/false; then awk $(vars) '$(awk)' $(saved);
+ # nozero fmt
+ else < $(saved) tr '\n' '\0' | awk $(vars) '$(awk)'; fi | dash
 
 hooks: list       := pre-commit post-merge
 hooks: pre-commit := \#!/bin/sh\n\ngit-store-dates
