@@ -68,10 +68,11 @@ find: phony; @:
  $(find) | $(stat) > $(found)
  awk $(vars) '$(awk)' $(found) | dash
  < $(found) tr -cd '\n' | ifne /bin/false  # don't accept '\n' in filename
- cmp -s $(ifzero) $(saved) || rm -f $(saved)
 
 $(found):;
-$(found)-nozero: $(found); @< $< tr '\0' '\n'n > $@; touch -r $< $@
+$(found)-nozero: $(found); @:
+ < $< tr '\0' '\n'n > $@; touch -r $< $@
+ cmp -s $(ifzero) $(saved) || rm -f $(saved)
 
 $(saved): $(found)-nozero; @cp -p $(ifzero) $@; git add $@; echo $(self): dates upgraded
 
