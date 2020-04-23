@@ -61,7 +61,7 @@ ZERO :=
 zero := ZERO := 42
 vartar += zero
 
-find: find := git ls-files -sz | grep -zve $(notdir $(saved)) | cut -zf2
+find: find := git ls-files -sz | grep -zave $(notdir $(saved)) | cut -zf2
 find: stat := xargs -0 stat -c '%Y %n' | tr '\n' '\0' | sort -zrn
 find: awk  := FNR == 1 { print "touch -d @" $$1 FS q "$(found)" q }
 find: phony; @:
