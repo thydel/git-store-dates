@@ -64,10 +64,15 @@ vartar += zero
 ifne := /usr/bin/ifne
 $(ifne):; sudo aptitude install -y moreutils
 
+gawk := /usr/bin/gawk
+$(gawk):; sudo aptitude install -y $(@F)
+
+bindeps := $(ifne) $(gawk)
+
 find: find := git ls-files -sz | grep -zave $(notdir $(saved)) | cut -zf2
 find: stat := xargs -0 stat -c '%Y %n' | tr '\n' '\0' | sort -zrn
 find: awk  := FNR == 1 { print "touch -d @" $$1 FS q "$(found)" q }
-find: $(ifne) phony; @:
+find: $(bindeps) phony; @:
  $(find) | $(stat) > $(found)
  awk $(vars) '$(awk)' $(found) | dash
  < $(found) tr -cd '\n' | ifne /bin/false  # don't accept '\n' in filename
@@ -82,7 +87,7 @@ $(saved): $(found)-nozero; @cp -p $(ifzero) $@; git add $@; echo $(self): dates 
 show: $(saved) phony; @< $< tr '\0' '\n'
 
 restore: awk := { print "touch -d @" $$1 sprintf("", sub($$1 FS, "")) FS q $$0 q }
-restore: $(ifne) phony; @:
+restore: $(bindeps) phony; @:
  test -f $(saved) || exit 0
  # zero fmt
  if < $(saved) tr -cd '\0' | ifne -n /bin/false; then awk $(vars) '$(awk)' $(saved);
