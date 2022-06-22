@@ -9,8 +9,13 @@ SHELL := $(shell which bash)
 .DELETE_ON_ERROR:
 .PHONY: phony
 
+ifdef NEVER
 .RECIPEPREFIX :=
 .RECIPEPREFIX +=
+endif
+
+_WS := $(or ) $(or )
+.RECIPEPREFIX := $(_WS)
 
 .DEFAULT_GOAL := main
 
